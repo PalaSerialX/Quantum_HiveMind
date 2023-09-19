@@ -16,7 +16,7 @@ class CherryDatabase:
         self.host = "localhost"
         self.database = "postgres"
         self.user = "postgres"
-        self.password = "fromhell04"
+        self.password = password
 
     def connect(self):
         self.conn = psycopg2.connect(
