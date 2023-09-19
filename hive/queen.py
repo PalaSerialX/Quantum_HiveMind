@@ -1,13 +1,13 @@
-import queue
-
 from hive.utils.function_calls import *
 from hive.utils.queen_brain import get_queen_bee_response
 from hive.database.tiny_db import QueenBeeTaskManager
 from hive.json_utils.json_handler import JsonConfigLoader
+from json import JSONDecodeError
 
+import queue
+import time
 import re
 import json
-from json import JSONDecodeError
 
 
 class QueenBee:
@@ -20,63 +20,31 @@ class QueenBee:
         self.system_prompts = self.config_loader.system_prompts
         self.function_metadata = self.config_loader.function_metadata
 
+    def generate_unique_task_id(self, task_description, priority):
+        # Take the first three words from the task description
+        first_words = "_".join(task_description.split()[:3])
+
+        # Add the priority
+        combined = f"{first_words}_{priority}"
+
+        # Add a timestamp for uniqueness
+        unique_id = f"{combined}_{int(time.time())}"
+
+        return unique_id
+
     def prepare_query_args(self, user_query: str):
         format_args = {
             'user_query': user_query,
             'function_metadata': self.function_metadata,
-            # Add more as needed
+            # will Add more as I grow this
         }
         return format_args
 
     def assign_tasks(self):
         pending_tasks = self.task_manager.get_tasks_by_status("pending")
-
         if not pending_tasks:
             print("No pending tasks to assign. 🌼")
             return
-
-        system_message, _ = self.get_system_info(message_key='Sub_task')
-        specific_prompts = self.config_loader.system_prompts['Specific_Prompts']
-
-        user_query_prompt = specific_prompts['User_Query_Prompt']
-        roadmap = specific_prompts['Roadmap']
-        output_format = specific_prompts['Output_Format']
-
-        # Take the first task for testing
-        task = pending_tasks[0]
-
-        format_args = {
-            'user_query': task.get('description', 'No description'),
-            'function_metadata': self.function_metadata,
-            'roadmap': roadmap,
-            'output_format': output_format
-        }
-
-        system_prompt = user_query_prompt.format(**format_args)
-        system_prompt += f"\nRoadmap: {roadmap}\nOutput Format: {output_format}"
-
-        print(f'this is the system_prompt: {system_prompt}')
-
-        gpt4_output = get_queen_bee_response(task=system_prompt, system_message=system_message,
-                                             max_tokens=2000, temperature=0.9)
-
-        gpt4_content = gpt4_output['choices'][0]['message']['content']
-
-        try:
-            start_index = gpt4_content.index("{")
-            end_index = gpt4_content.rindex("}") + 1
-            json_str = gpt4_content[start_index:end_index]
-            task_breakdown = json.loads(json_str)
-        except (JSONDecodeError, ValueError):
-            print(f"Oops! Invalid JSON format for task {task['_id']}. 🌹")
-            return None  # Explicitly return None if JSON is invalid
-
-        self.task_manager.update_task(task['_id'], {'breakdown': task_breakdown})
-        self.task_queue.put(task)
-
-        print(f"Task {task['_id']} has been assigned with a detailed breakdown! 🌼")
-
-        return task_breakdown
 
     def receive_results(self, task_id, result):
         self.task_manager.update_task(task_id, {'status': 'completed', 'result': result})
@@ -92,10 +60,10 @@ class QueenBee:
     def decide_task_route(self, gpt4_content, user_query):
         decision = gpt4_content.strip()
 
-        if decision == 'handle_it_myself':
-            return self.execute_simple_task(user_query)
-        elif decision == 'break_into_subtasks':
+        if decision == 'break_into_subtasks':
             return self.break_into_subtasks(user_query)
+        elif decision == 'handle_it_myself':
+            return self.execute_simple_task(user_query)
         elif decision == 'break_into_subtasks_and_clarify':
             return self.break_into_subtasks_and_clarify()
         else:
@@ -116,13 +84,13 @@ class QueenBee:
         system_message = system_message.replace("{user_query}", user_query)
 
         # Query GPT-4 to decide which function to use
-        gpt4_output = get_queen_bee_response(task=system_prompt, system_message=system_message)
+        queen_output = get_queen_bee_response(task=system_prompt, system_message=system_message)
 
         # Extract the content from the OpenAIObject
-        gpt4_content = gpt4_output['choices'][0]['message']['content']
+        queen_output = queen_output['choices'][0]['message']['content']
 
         # Extract just the JSON part from the gpt4_content
-        json_match = re.search(r'\{.*\}', gpt4_content)
+        json_match = re.search(r'\{.*\}', queen_output)
         if json_match:
             json_str = json_match.group(0)
             try:
@@ -153,12 +121,12 @@ class QueenBee:
         system_prompt = f"User Query: {user_query} {system_prompt}"
 
         # Query GPT-4 to decide which sub-tasks to create
-        gpt4_output = get_queen_bee_response(task=system_prompt, system_message=system_message, max_tokens=2000)
+        queen_output = get_queen_bee_response(task=system_prompt, system_message=system_message, max_tokens=2000)
 
         # Extract the content from the OpenAIObject
-        gpt4_content = gpt4_output['choices'][0]['message']['content']
+        queen_content = queen_output['choices'][0]['message']['content']
 
-        json_content = json.loads(gpt4_content)
+        json_content = json.loads(queen_content)
 
         if 'tasks' in json_content:
             sub_tasks = json_content['tasks']
@@ -168,13 +136,14 @@ class QueenBee:
             print("Neither 'tasks' nor 'sub_tasks' found. Initializing an empty list.")
             sub_tasks = []
 
-        print(f"gpt4_content: {gpt4_content}")
+        print(f"queen_content: {queen_content}")
 
-        # Add these sub-tasks to your task manager
+        # Add these sub-tasks to your task manager with unique IDs
         for task in sub_tasks:
-            self.task_manager.add_task(task['_id'], task['description'], task['priority'], task['status'])
-
-        print("Sub-tasks have been created and added to the task manager! 🌼")
+            unique_task_id = self.generate_unique_task_id(task['description'], task['priority'])
+            category = task.get('category', None)  # Get the category if it exists, otherwise None
+            self.task_manager.add_task(unique_task_id, task['description'], task['priority'], task['status'],
+                                       category=category)
 
         # Now, let's assign those tasks!
         self.assign_tasks()
@@ -226,14 +195,14 @@ class QueenBee:
         # Replace the {user_query} placeholder in the system_message
         system_message = system_message.replace("{user_query}", user_query)
 
-        # Query GPT-4 (this is pseudo-code)
-        gpt4_output = get_queen_bee_response(task=prompt, system_message=system_message)
+        # Query Queen
+        query_response = get_queen_bee_response(task=prompt, system_message=system_message, model="gpt-3.5-turbo")
 
-        # Extract the content from the OpenAIObject
-        gpt4_content = gpt4_output['choices'][0]['message']['content']
+        # Extract the content from the Queen
+        query_response = query_response['choices'][0]['message']['content']
 
         # Decide what to do next based on the result
-        next_step = self.decide_task_route(gpt4_content, user_query)
+        next_step = self.decide_task_route(query_response, user_query)
         return next_step
 
 
@@ -242,7 +211,8 @@ if __name__ == "__main__":
     queen = QueenBee()
 
     # Start the hive management
-    result = queen.process_user_query("What's the weather in new york?")
+    result = queen.process_user_query("I want you to figure out how to build a successful "
+                                      "youtube channel, on deep pround level. ")
 
     # result = queen.assign_tasks()
     print(result)

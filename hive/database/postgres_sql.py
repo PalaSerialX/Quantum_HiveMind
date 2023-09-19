@@ -16,7 +16,7 @@ class CherryDatabase:
         self.host = "localhost"
         self.database = "postgres"
         self.user = "postgres"
-        self.password = password
+        self.password = "fromhell04"
 
     def connect(self):
         self.conn = psycopg2.connect(
@@ -31,13 +31,13 @@ class CherryDatabase:
         self.cur.close()
         self.conn.close()
 
-    def insert_cherry(self, title, url, timestamp=datetime.now(),
+    def insert_cherry(self, unique_task_id, title, url, timestamp=datetime.now(),
                       keywords=None, priority=None, is_cherry=False, status="Active"):
         self.connect()
         self.cur.execute(
-            "INSERT INTO search_results (Title, URL, IsCherry, Keywords, Timestamp, "
-            "Priority, Status) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-            (title, url, is_cherry, keywords, timestamp, priority, status))
+            "INSERT INTO search_results (UniqueTaskID, Title, URL, IsCherry, Keywords, Timestamp, "
+            "Priority, Status) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+            (unique_task_id, title, url, is_cherry, keywords, timestamp, priority, status))
         self.conn.commit()
         self.close()
 
@@ -48,11 +48,11 @@ class CherryDatabase:
         self.close()
         return rows
 
-    def update_cherry_status(self, title, url, status="Active", is_cherry=True):
+    def update_cherry_status(self, unique_task_id, title, url, status="Active", is_cherry=True):
         self.connect()
         self.cur.execute(
-            "UPDATE search_results SET Status = %s, IsCherry = %s WHERE Title = %s AND URL = %s",
-            (status, is_cherry, title, url)
+            "UPDATE search_results SET Status = %s, IsCherry = %s WHERE UniqueTaskID = %s AND Title = %s AND URL = %s",
+            (status, is_cherry, unique_task_id, title, url)
         )
         self.conn.commit()
         self.close()

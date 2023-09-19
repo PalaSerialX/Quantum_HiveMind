@@ -24,6 +24,7 @@ def collect_data():
     pending_research_tasks = task_manager.get_tasks_by_status_and_type("pending", "Research")
 
     for task in pending_research_tasks:
+        parent_task_id = task.get('_id', '')
         query = task['breakdown'].get('ImmediateNextSteps', [])
         keywords = task.get('breakdown', {}).get('QuerySources', {}).get('keywords', []) if 'QuerySources' in task.get(
             'breakdown', {}) else []
@@ -107,7 +108,8 @@ def collect_data():
                     print(f"Found matching cherry with title: {main_title}, url: {url}")
 
                     # Update the cherry status in the database
-                    db.update_cherry_status(title=main_title, url=url, status="Active", is_cherry=True)
+                    db.update_cherry_status(title=main_title, url=url, status="Active", is_cherry=True,
+                                            unique_task_id=parent_task_id)
 
                 else:
                     print(f"Skipping title not found in database: {main_title}")

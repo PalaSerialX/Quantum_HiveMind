@@ -1,5 +1,6 @@
 from tinydb import TinyDB, Query
 import os
+import json
 
 
 class QueenBeeTaskManager:
@@ -11,40 +12,48 @@ class QueenBeeTaskManager:
         db_path = os.path.join(dir_path, 'tasks.json')
         self.db = TinyDB(db_path)
 
-    def add_task(self, task_id, description, priority="medium", status="pending"):
-        self.db.insert({'_id': task_id, 'description': description, 'priority': priority, 'status': status})
+    def add_task(self, task_id, description, priority="medium", status="pending", unique_task_id=None, **kwargs):
+        task_data = {'_id': task_id, 'description': description, 'priority': priority, 'status': status}
+        if unique_task_id:
+            task_data['unique_task_id'] = unique_task_id
+        # Add any additional keyword arguments to the task data
+        task_data.update(kwargs)
+        self.db.insert(task_data)
         print(f"Task {task_id} added with priority {priority}! 🌼")
 
     def get_task(self, task_id):
-        Task = Query()
-        return self.db.search(Task._id == task_id)
+        task = Query()
+        return self.db.search(task._id == task_id)
 
     def get_tasks_by_status_and_type(self, status, task_type):
-        Task = Query()
-        status_filtered_tasks = self.db.search(Task.status == status)
+        task = Query()
+        status_filtered_tasks = self.db.search(task.status == status)
         type_filtered_tasks = [task for task in status_filtered_tasks if
                                task.get('breakdown', {}).get('UnderstandingTask') == task_type]
-
 
         return type_filtered_tasks
 
     def update_task(self, task_id, updates):
-        Task = Query()
-        self.db.update(updates, Task._id == task_id)
-        print(f"Task {task_id} updated! 🌟")
+        task = Query()
+        # Convert any dictionaries in 'updates' to a readable JSON string
+        for key, value in updates.items():
+            if isinstance(value, dict):
+                updates[key] = json.dumps(value, indent=4)
+        self.db.update(updates, task._id == task_id)
+        print(f"Task {task_id} updated in a readable format! 🌟")
 
     def delete_task(self, task_id):
-        Task = Query()
-        self.db.remove(Task._id == task_id)
+        task = Query()
+        self.db.remove(task._id == task_id)
         print(f"Task {task_id} deleted! 🌹")
 
     def get_tasks_by_priority(self, priority):
-        Task = Query()
-        return self.db.search(Task.priority == priority)
+        task = Query()
+        return self.db.search(task.priority == priority)
 
     def get_tasks_by_status(self, status):
-        Task = Query()
-        return self.db.search(Task.status == status)
+        task = Query()
+        return self.db.search(task.status == status)
 
 
 
