@@ -1,0 +1,36 @@
+[
+    {
+        "name": "search_ddg",
+        "description": "Searches DuckDuckGo for the provided query and writes the results to a text file.",
+        "params": [
+            {"name": "query", "type": "str", "description": "The search query"}
+        ]
+    },
+    {
+        "name": "get_current_weather",
+        "description": "Gets the current weather information.",
+        "params": [
+            {"name": "location", "type": "str", "description": "The location for which to get the weather", "default": null},
+            {"name": "country", "type": "str", "description": "The ISO 3166-1 alpha-2 country code", "default": null}
+        ]
+    },
+    {
+        "name": "recommend_youtube_channel",
+        "description": "Gets a really good recommendation for a YouTube channel to watch.",
+        "params": []
+    },
+    {
+        "name": "calculate_str_length",
+        "description": "Calculates the length of a string.",
+        "params": [
+            {"name": "string", "type": "str", "description": "The string whose length is to be calculated"}
+        ]
+    },
+    {
+        "name": "say_hello",
+        "description": "Returns a greeting message.",
+        "params": [
+            {"name": "greeting", "type": "str", "description": "The greeting message to return", "default": "Hello, world!"}
+        ]
+    }
+]
