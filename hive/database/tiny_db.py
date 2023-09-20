@@ -28,9 +28,11 @@ class QueenBeeTaskManager:
     def get_tasks_by_status_and_type(self, status, task_type):
         task = Query()
         status_filtered_tasks = self.db.search(task.status == status)
-        type_filtered_tasks = [task for task in status_filtered_tasks if
-                               task.get('breakdown', {}).get('UnderstandingTask') == task_type]
 
+        type_filtered_tasks = [
+            task for task in status_filtered_tasks
+            if task.get('category') == task_type  # Changed 'breakdown' and 'UnderstandingTask' to 'category'
+        ]
         return type_filtered_tasks
 
     def update_task(self, task_id, updates):

@@ -35,7 +35,7 @@ class CherryDatabase:
                       keywords=None, priority=None, is_cherry=False, status="Active"):
         self.connect()
         self.cur.execute(
-            "INSERT INTO search_results (UniqueTaskID, Title, URL, IsCherry, Keywords, Timestamp, "
+            "INSERT INTO search_results (uniquetaskid, Title, URL, IsCherry, Keywords, Timestamp, "
             "Priority, Status) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
             (unique_task_id, title, url, is_cherry, keywords, timestamp, priority, status))
         self.conn.commit()
@@ -48,12 +48,11 @@ class CherryDatabase:
         self.close()
         return rows
 
-    def update_cherry_status(self, unique_task_id, title, url, status="Active", is_cherry=True):
+    def update_cherry_status_by_title(self, title, status="Active", is_cherry=True):
         self.connect()
-        self.cur.execute(
-            "UPDATE search_results SET Status = %s, IsCherry = %s WHERE UniqueTaskID = %s AND Title = %s AND URL = %s",
-            (status, is_cherry, unique_task_id, title, url)
-        )
+        query = "UPDATE search_results SET Status = %s, IsCherry = %s WHERE LOWER(title) LIKE %s"
+        self.cur.execute(query, (status, is_cherry, f"%{title.lower()}%"))
+        updated_rows = self.cur.rowcount
         self.conn.commit()
         self.close()
 
@@ -64,4 +63,23 @@ class CherryDatabase:
         records = self.cur.fetchall()
         self.close()
         return records
+
+    def clean_up_database(self):
+        # delete duplicate cherries and non cherries
+
+        self.connect()
+        # Delete duplicate cherries
+        query_delete_duplicates = """
+        DELETE FROM search_results
+        WHERE ctid NOT IN (
+            SELECT MIN(ctid)
+            FROM search_results
+            GROUP BY Title, URL
+        );
+        """
+        self.cur.execute(query_delete_duplicates)
+        # Delete non-cherries
+        self.cur.execute("DELETE FROM search_results WHERE IsCherry = false")
+        self.conn.commit()
+        self.close()
 
