@@ -67,10 +67,10 @@ def collect_data():
     for parent_task_id, task_info in task_keyword_dict.items():
         keywords = task_info['keywords']
         description = task_info['description']
+
         print(f"Working on task: {parent_task_id}")
 
         for search in keywords:
-            print(f"This is the search: {search}")
             ddg_data = search_ddg(search)
             time.sleep(2)
 
@@ -120,8 +120,6 @@ def collect_data():
             if matching_records:
                 record = matching_records[0]
                 exact_title_from_db = record[2]
-                url = record[3]
-                print(f"Found matching cherry with title: {main_title}, url: {url}")
 
                 db.update_cherry_status_by_title(title=exact_title_from_db, is_cherry=True, status="Active")
             else:

@@ -11,7 +11,7 @@ load_dotenv()
 password = os.getenv("POSTGRES_PASS")
 
 
-class CherryDatabase:
+class BaseDatabase:
     def __init__(self):
         self.host = "localhost"
         self.database = "postgres"
@@ -31,6 +31,8 @@ class CherryDatabase:
         self.cur.close()
         self.conn.close()
 
+
+class CherryDatabase(BaseDatabase):
     def insert_cherry(self, unique_task_id, title, url, timestamp=datetime.now(),
                       keywords=None, priority=None, is_cherry=False, status="Active"):
         self.connect()
@@ -83,3 +85,25 @@ class CherryDatabase:
         self.conn.commit()
         self.close()
 
+
+class ChatContextManager(BaseDatabase):
+    def save_chat_history(self, user_id, role, content):
+        self.connect()
+        self.cur.execute(
+            "INSERT INTO chat_history (user_id, role, content) VALUES (%s, %s, %s)",
+            (user_id, role, content))
+        self.conn.commit()
+        self.close()
+
+    def fetch_chat_history(self, user_id):
+        self.connect()
+        self.cur.execute("SELECT * FROM chat_history WHERE user_id = %s ORDER BY timestamp ASC", [user_id])
+        rows = self.cur.fetchall()
+        self.close()
+        return rows
+
+    def delete_chat_history(self, user_id):
+        self.connect()
+        self.cur.execute("DELETE FROM chat_history WHERE user_id = %s", [user_id])
+        self.conn.commit()
+        self.close()

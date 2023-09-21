@@ -36,7 +36,7 @@ def scrape_website_text(url):
         for p in p_tags:
             all_text += p.text + "\n"
 
-        # Show the first 100 characters of the scraped text
+        # Show the the scraped text
         print(f"Scraped Text: {all_text}")
 
     except Exception as e:
@@ -50,6 +50,6 @@ def scrape_website_text(url):
 
 
 # Example usage
-scrape_website_text("https://www.indeed.com/career-advice/career-development/target-demographic")
+scrape_website_text("https://zapier.com/blog/find-your-target-audience/")
 
 
