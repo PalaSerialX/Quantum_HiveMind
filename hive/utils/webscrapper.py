@@ -1,6 +1,8 @@
 from selenium import webdriver
 from selenium.webdriver.edge.service import Service as EdgeService
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from hive.database.postgres_sql import CherryDatabase
+
 from bs4 import BeautifulSoup
 import time
 
@@ -19,6 +21,9 @@ def scrape_website_text(url):
     # Scrape the page title
     page_title = driver.title
 
+    # Update the database
+    db = CherryDatabase()
+
     try:
         # Get the entire page source
         page_source = driver.page_source
@@ -36,8 +41,11 @@ def scrape_website_text(url):
         for p in p_tags:
             all_text += p.text + "\n"
 
-        # Show the the scraped text
+        # Show the scraped text
         print(f"Scraped Text: {all_text}")
+
+        # add the scrapped text to search_results
+        db.update_cherry_scraped_text(url, all_text)
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -51,5 +59,3 @@ def scrape_website_text(url):
 
 # Example usage
 scrape_website_text("https://zapier.com/blog/find-your-target-audience/")
-
-

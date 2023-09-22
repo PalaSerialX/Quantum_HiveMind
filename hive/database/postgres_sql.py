@@ -34,12 +34,12 @@ class BaseDatabase:
 
 class CherryDatabase(BaseDatabase):
     def insert_cherry(self, unique_task_id, title, url, timestamp=datetime.now(),
-                      keywords=None, priority=None, is_cherry=False, status="Active"):
+                      keywords=None, priority=None, is_cherry=False, status="Active", scraped_text=None):
         self.connect()
         self.cur.execute(
             "INSERT INTO search_results (uniquetaskid, Title, URL, IsCherry, Keywords, Timestamp, "
-            "Priority, Status) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-            (unique_task_id, title, url, is_cherry, keywords, timestamp, priority, status))
+            "Priority, Status, scraped_text) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (unique_task_id, title, url, is_cherry, keywords, timestamp, priority, status, scraped_text))
         self.conn.commit()
         self.close()
 
@@ -58,6 +58,14 @@ class CherryDatabase(BaseDatabase):
         self.conn.commit()
         self.close()
 
+    def update_cherry_scraped_text(self, url, scraped_text):
+        self.connect()
+        self.cur.execute(
+            "UPDATE search_results SET scraped_text = %s WHERE URL = %s",
+            (scraped_text, url))
+        self.conn.commit()
+        self.close()
+
     def fetch_cherries_by_partial_title(self, partial_title):
         self.connect()
         query = "SELECT * FROM search_results WHERE LOWER(title) LIKE %s"
@@ -68,7 +76,6 @@ class CherryDatabase(BaseDatabase):
 
     def clean_up_database(self):
         # delete duplicate cherries and non cherries
-
         self.connect()
         # Delete duplicate cherries
         query_delete_duplicates = """
